@@ -1,6 +1,7 @@
 "use strict";
 
-const STORAGE_KEY = "sokuhou-generator-state-v1";
+const LEGACY_STORAGE_KEY = "sokuhou-generator-state-v1";
+const STORAGE_KEY = "sokuhou-generator-state-v2";
 
 const FIELD_KEYS = [
   "area",
@@ -17,7 +18,7 @@ const FIELD_KEYS = [
 ];
 
 const DEFAULT_STATE = {
-  tone: "formal",
+  tone: "tweet",
   length: "standard",
 };
 
@@ -136,6 +137,12 @@ const REPORT_BUILDERS = {
   detailed: buildDetailedReport,
 };
 
+const TWEET_BUILDERS = {
+  short: buildTweetShortReport,
+  standard: buildTweetStandardReport,
+  detailed: buildTweetDetailedReport,
+};
+
 const form = document.querySelector("#reportForm");
 const outputText = document.querySelector("#outputText");
 const copyButton = document.querySelector("#copyButton");
@@ -207,7 +214,19 @@ function renderAndSave(shouldSave) {
 function loadState() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : DEFAULT_STATE;
+    if (saved) {
+      return JSON.parse(saved);
+    }
+
+    const legacySaved = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacySaved) {
+      return {
+        ...JSON.parse(legacySaved),
+        tone: DEFAULT_STATE.tone,
+      };
+    }
+
+    return DEFAULT_STATE;
   } catch {
     return DEFAULT_STATE;
   }
@@ -234,7 +253,11 @@ function generateReport(rawState) {
   const ctx = normalizeState(rawState);
 
   if (!hasReportInput(ctx)) {
-    return "【即報】\nフォームに入力すると、ここに即報文がリアルタイム表示されます。";
+    return "【即報】\nフォームに入力すると、ここに投稿用の即報文がリアルタイム表示されます。";
+  }
+
+  if (ctx.tone === "tweet") {
+    return buildTweetReport(ctx);
   }
 
   const builder = REPORT_BUILDERS[ctx.length] || REPORT_BUILDERS.standard;
@@ -327,7 +350,70 @@ function buildDetailedReport(ctx) {
   ]);
 }
 
+function buildTweetReport(ctx) {
+  const builder = TWEET_BUILDERS[ctx.length] || TWEET_BUILDERS.standard;
+  return builder(ctx);
+}
+
+function buildTweetShortReport(ctx) {
+  return joinLines([
+    buildTweetHeadline(ctx),
+    firstPresent([
+      ctx.result ? `結果: ${tweetText(ctx.result)}` : "",
+      ctx.open ? `入り: ${tweetText(ctx.open)}` : "",
+      ctx.early ? `反応: ${tweetText(ctx.early)}` : "",
+    ]),
+    ctx.good ? `良かった: ${tweetText(ctx.good)}` : "",
+    ctx.reflection ? `反省: ${tweetText(ctx.reflection)}` : "",
+    ctx.next ? `次: ${tweetText(ctx.next)}` : "",
+    tweetTags(ctx),
+  ]);
+}
+
+function buildTweetStandardReport(ctx) {
+  return joinLines([
+    buildTweetHeadline(ctx),
+    ctx.opponent ? `相手: ${tweetText(ctx.opponent)}` : "",
+    ctx.open ? `入り: ${tweetText(ctx.open)}` : "",
+    ctx.early ? `序盤: ${tweetText(ctx.early)}` : "",
+    ctx.middle ? `中盤: ${tweetText(ctx.middle)}` : "",
+    ctx.result ? `結果: ${tweetText(ctx.result)}` : "",
+    "",
+    ctx.good ? `良かった: ${tweetText(ctx.good)}` : "",
+    ctx.reflection ? `反省: ${tweetText(ctx.reflection)}` : "",
+    ctx.next ? `次やる: ${tweetText(ctx.next)}` : "",
+    tweetTags(ctx),
+  ]);
+}
+
+function buildTweetDetailedReport(ctx) {
+  return joinBlocks([
+    joinLines([
+      buildTweetHeadline(ctx),
+      ctx.opponent ? `相手: ${tweetText(ctx.opponent)}` : "",
+    ]),
+    joinLines([
+      ctx.open ? `1. 入り: ${tweetText(ctx.open)}` : "",
+      ctx.early ? `2. 序盤: ${tweetText(ctx.early)}` : "",
+      ctx.middle ? `3. 中盤: ${tweetText(ctx.middle)}` : "",
+      ctx.result ? `4. 結果: ${tweetText(ctx.result)}` : "",
+    ]),
+    joinLines([
+      ctx.good ? `良かった点: ${tweetText(ctx.good)}` : "",
+      ctx.reflection ? `反省点: ${tweetText(ctx.reflection)}` : "",
+      ctx.next ? `次回: ${tweetText(ctx.next)}` : "",
+    ]),
+    ctx.memo ? `メモ: ${tweetText(ctx.memo)}` : "",
+    tweetTags(ctx),
+  ]);
+}
+
 function buildHeadline(ctx) {
+  const meta = [ctx.area, ctx.displayDate].filter(Boolean).join(" / ");
+  return meta ? `【即報】${meta}` : "【即報】";
+}
+
+function buildTweetHeadline(ctx) {
   const meta = [ctx.area, ctx.displayDate].filter(Boolean).join(" / ");
   return meta ? `【即報】${meta}` : "【即報】";
 }
@@ -347,6 +433,22 @@ function joinBlocks(blocks) {
 
 function joinLines(lines) {
   return lines.filter(Boolean).join("\n");
+}
+
+function firstPresent(lines) {
+  return lines.find(Boolean) || "";
+}
+
+function tweetText(value) {
+  return cleanMultiline(value).replace(/[。．.]+$/u, "");
+}
+
+function tweetTags(ctx) {
+  const tags = ["#即報"];
+  if (ctx.good || ctx.reflection || ctx.next) {
+    tags.push("#振り返り");
+  }
+  return tags.join(" ");
 }
 
 function toSentence(value) {
@@ -390,7 +492,7 @@ function hasReportInput(ctx) {
 
 function fillSample() {
   applyState({
-    tone: "formal",
+    tone: "tweet",
     length: "standard",
     area: "渋谷駅周辺",
     datetime: toDateTimeLocalValue(new Date()),

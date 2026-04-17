@@ -214,6 +214,10 @@ textarea:focus-visible,
   gap: 6px;
 }
 
+.tone-segmented {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .segmented label {
   min-width: 0;
 }
