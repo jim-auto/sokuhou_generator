@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>即報ジェネレータ</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">Sokuhou Generator</p>
+          <h1>即報ジェネレータ</h1>
+        </div>
+        <div class="save-state" id="saveStatus" aria-live="polite">自動保存</div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel input-panel" aria-labelledby="inputTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Input</p>
+              <h2 id="inputTitle">入力フォーム</h2>
+            </div>
+            <div class="action-row">
+              <button class="button secondary" type="button" id="sampleButton">サンプル入力</button>
+              <button class="button subtle" type="button" id="clearButton">クリア</button>
+            </div>
+          </div>
+
+          <form id="reportForm" class="report-form">
+            <div class="option-grid">
+              <fieldset class="option-group">
+                <legend>文体</legend>
+                <div class="segmented" role="radiogroup" aria-label="文体">
+                  <label>
+                    <input type="radio" name="tone" value="formal" checked>
+                    <span>事務的</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="tone" value="casual">
+                    <span>カジュアル</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="tone" value="reflective">
+                    <span>反省強め</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset class="option-group">
+                <legend>長さ</legend>
+                <div class="segmented" role="radiogroup" aria-label="出力の長さ">
+                  <label>
+                    <input type="radio" name="length" value="short">
+                    <span>短め</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="length" value="standard" checked>
+                    <span>標準</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="length" value="detailed">
+                    <span>詳しめ</span>
+                  </label>
+                </div>
+              </fieldset>
+            </div>
+
+            <div class="field-grid">
+              <label class="field">
+                <span>エリア</span>
+                <input type="text" data-field="area" placeholder="例: 渋谷駅周辺" autocomplete="off">
+              </label>
+
+              <label class="field">
+                <span>日時</span>
+                <input type="datetime-local" data-field="datetime">
+              </label>
+
+              <label class="field full">
+                <span>相手の系統</span>
+                <input type="text" data-field="opponent" placeholder="例: 20代後半・落ち着いた雰囲気" autocomplete="off">
+              </label>
+
+              <label class="field full">
+                <span>オープン</span>
+                <textarea data-field="open" rows="3" placeholder="最初の入り方、声かけ、導入など"></textarea>
+              </label>
+
+              <label class="field full">
+                <span>序盤反応</span>
+                <textarea data-field="early" rows="3" placeholder="表情、警戒感、返答の量など"></textarea>
+              </label>
+
+              <label class="field full">
+                <span>中盤反応</span>
+                <textarea data-field="middle" rows="3" placeholder="会話の伸び、温度感、話題の変化など"></textarea>
+              </label>
+
+              <label class="field full">
+                <span>結果</span>
+                <textarea data-field="result" rows="3" placeholder="最終的な結果、所要時間、次につながった点など"></textarea>
+              </label>
+
+              <label class="field full">
+                <span>良かった点</span>
+                <textarea data-field="good" rows="3" placeholder="継続したい動き、反応が良かった要素など"></textarea>
+              </label>
+
+              <label class="field full">
+                <span>反省点</span>
+                <textarea data-field="reflection" rows="3" placeholder="詰まった点、改善余地、判断ミスなど"></textarea>
+              </label>
+
+              <label class="field full">
+                <span>次回改善</span>
+                <textarea data-field="next" rows="3" placeholder="次に試すこと、意識することなど"></textarea>
+              </label>
+
+              <label class="field full">
+                <span>自由メモ</span>
+                <textarea data-field="memo" rows="4" placeholder="補足、状況、細かい気づきなど"></textarea>
+              </label>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel output-panel" aria-labelledby="outputTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Preview</p>
+              <h2 id="outputTitle">生成結果</h2>
+            </div>
+            <button class="button primary" type="button" id="copyButton">コピー</button>
+          </div>
+          <pre class="output-text" id="outputText" aria-live="polite"></pre>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="script.js"></script>
+  </body>
+</html>
