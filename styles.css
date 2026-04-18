@@ -192,6 +192,17 @@ textarea:focus-visible,
   gap: 14px;
 }
 
+.seed-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.seed-button {
+  min-height: 44px;
+}
+
 .option-group {
   min-width: 0;
   margin: 0;
@@ -386,7 +397,8 @@ textarea:focus-visible,
   }
 
   .option-grid,
-  .field-grid {
+  .field-grid,
+  .seed-control {
     grid-template-columns: 1fr;
   }
 

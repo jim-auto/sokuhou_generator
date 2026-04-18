@@ -20,9 +20,14 @@ const FIELD_KEYS = [
   "memo",
 ];
 
+const CONTROL_KEYS = [
+  "seed",
+];
+
 const DEFAULT_STATE = {
   tone: "tweet",
   length: "short",
+  seed: "",
 };
 
 const TONE_CONFIG = {
@@ -151,6 +156,7 @@ const outputText = document.querySelector("#outputText");
 const copyButton = document.querySelector("#copyButton");
 const sampleButton = document.querySelector("#sampleButton");
 const clearButton = document.querySelector("#clearButton");
+const randomSeedButton = document.querySelector("#randomSeedButton");
 const toast = document.querySelector("#toast");
 const saveStatus = document.querySelector("#saveStatus");
 
@@ -160,7 +166,7 @@ let saveStatusTimer = 0;
 init();
 
 function init() {
-  applyState(loadState());
+  applyState(ensureSeed(loadState()));
   renderAndSave(false);
 
   form.addEventListener("input", () => renderAndSave(true));
@@ -168,6 +174,7 @@ function init() {
   copyButton.addEventListener("click", copyReport);
   sampleButton.addEventListener("click", fillSample);
   clearButton.addEventListener("click", clearInputs);
+  randomSeedButton.addEventListener("click", randomizeSeed);
 }
 
 function collectState() {
@@ -176,6 +183,11 @@ function collectState() {
   for (const key of FIELD_KEYS) {
     const field = document.querySelector(`[data-field="${key}"]`);
     state[key] = field ? field.value : "";
+  }
+
+  for (const key of CONTROL_KEYS) {
+    const field = document.querySelector(`[data-control="${key}"]`);
+    state[key] = field ? field.value.trim() : "";
   }
 
   const formData = new FormData(form);
@@ -190,6 +202,13 @@ function applyState(state) {
 
   for (const key of FIELD_KEYS) {
     const field = document.querySelector(`[data-field="${key}"]`);
+    if (field) {
+      field.value = nextState[key] || "";
+    }
+  }
+
+  for (const key of CONTROL_KEYS) {
+    const field = document.querySelector(`[data-control="${key}"]`);
     if (field) {
       field.value = nextState[key] || "";
     }
@@ -228,14 +247,23 @@ function loadState() {
           ...JSON.parse(legacySaved),
           tone: DEFAULT_STATE.tone,
           length: DEFAULT_STATE.length,
+          seed: createRandomSeed(),
         };
       }
     }
 
-    return DEFAULT_STATE;
+    return ensureSeed(DEFAULT_STATE);
   } catch {
-    return DEFAULT_STATE;
+    return ensureSeed(DEFAULT_STATE);
   }
+}
+
+function ensureSeed(state) {
+  return {
+    ...DEFAULT_STATE,
+    ...state,
+    seed: state.seed || createRandomSeed(),
+  };
 }
 
 function saveState(state) {
@@ -274,6 +302,7 @@ function normalizeState(state) {
   const normalized = {
     tone: state.tone || DEFAULT_STATE.tone,
     length: state.length || DEFAULT_STATE.length,
+    seed: state.seed || "default",
   };
 
   for (const key of FIELD_KEYS) {
@@ -364,17 +393,18 @@ function buildTweetReport(ctx) {
 function buildTweetShortReport(ctx) {
   return joinLines([
     buildTweetHeadline(ctx),
-    compactLine("相手", ctx.opponent, 26),
-    firstPresent([
-      compactLine("結果", ctx.result, 34),
-      compactLine("入り", ctx.open, 34),
-      compactLine("反応", ctx.early, 34),
+    compactLine(tweetLabel(ctx, "opponent"), ctx.opponent, 26),
+    pickLine(ctx, "short-main", [
+      compactLine(tweetLabel(ctx, "result"), ctx.result, 34),
+      compactLine(tweetLabel(ctx, "open"), ctx.open, 34),
+      compactLine(tweetLabel(ctx, "reaction"), ctx.early, 34),
     ]),
-    firstPresent([
-      compactLine("良", ctx.good, 28),
-      compactLine("反省", ctx.reflection, 28),
-      compactLine("次", ctx.next, 28),
+    pickLine(ctx, "short-sub", [
+      compactLine(tweetLabel(ctx, "good"), ctx.good, 28),
+      compactLine(tweetLabel(ctx, "reflection"), ctx.reflection, 28),
+      compactLine(tweetLabel(ctx, "next"), ctx.next, 28),
     ]),
+    slangLine(ctx),
     pickupComment(ctx),
     tweetTags(ctx),
   ]);
@@ -383,14 +413,15 @@ function buildTweetShortReport(ctx) {
 function buildTweetStandardReport(ctx) {
   return joinLines([
     buildTweetHeadline(ctx),
-    compactLine("相手", ctx.opponent, 28),
-    compactLine("入り", ctx.open, 34),
+    compactLine(tweetLabel(ctx, "opponent"), ctx.opponent, 28),
+    compactLine(tweetLabel(ctx, "open"), ctx.open, 34),
     compactReaction(ctx),
-    compactLine("結果", ctx.result, 36),
+    compactLine(tweetLabel(ctx, "result"), ctx.result, 36),
     "",
-    compactLine("良", ctx.good, 30),
-    compactLine("反省", ctx.reflection, 30),
-    compactLine("次", ctx.next, 30),
+    compactLine(tweetLabel(ctx, "good"), ctx.good, 30),
+    compactLine(tweetLabel(ctx, "reflection"), ctx.reflection, 30),
+    compactLine(tweetLabel(ctx, "next"), ctx.next, 30),
+    slangLine(ctx),
     pickupComment(ctx),
     tweetTags(ctx),
   ]);
@@ -399,16 +430,17 @@ function buildTweetStandardReport(ctx) {
 function buildTweetDetailedReport(ctx) {
   return joinLines([
     buildTweetHeadline(ctx),
-    compactLine("相手", ctx.opponent, 30),
-    compactLine("入り", ctx.open, 38),
-    compactLine("序盤", ctx.early, 38),
-    compactLine("中盤", ctx.middle, 38),
-    compactLine("結果", ctx.result, 38),
+    compactLine(tweetLabel(ctx, "opponent"), ctx.opponent, 30),
+    compactLine(tweetLabel(ctx, "open"), ctx.open, 38),
+    compactLine(tweetLabel(ctx, "early"), ctx.early, 38),
+    compactLine(tweetLabel(ctx, "middle"), ctx.middle, 38),
+    compactLine(tweetLabel(ctx, "result"), ctx.result, 38),
     "",
-    compactLine("良かった", ctx.good, 36),
-    compactLine("反省", ctx.reflection, 36),
-    compactLine("次", ctx.next, 36),
+    compactLine(tweetLabel(ctx, "good"), ctx.good, 36),
+    compactLine(tweetLabel(ctx, "reflection"), ctx.reflection, 36),
+    compactLine(tweetLabel(ctx, "next"), ctx.next, 36),
     compactLine("メモ", ctx.memo, 34),
+    slangLine(ctx),
     pickupComment(ctx),
     tweetTags(ctx),
   ]);
@@ -420,7 +452,8 @@ function buildHeadline(ctx) {
 }
 
 function buildTweetHeadline(ctx) {
-  const meta = [ctx.area, ctx.displayDate].filter(Boolean).join(" / ");
+  const separator = pick(ctx, "headline-separator", [" / ", "｜", " "]);
+  const meta = [ctx.area, ctx.displayDate].filter(Boolean).join(separator);
   return meta ? `【即報】${meta}` : "【即報】";
 }
 
@@ -445,6 +478,11 @@ function firstPresent(lines) {
   return lines.find(Boolean) || "";
 }
 
+function pickLine(ctx, key, lines) {
+  const available = lines.filter(Boolean);
+  return available.length ? pick(ctx, key, available) : "";
+}
+
 function compactLine(label, value, maxLength) {
   return value ? `${label}: ${tweetText(value, maxLength)}` : "";
 }
@@ -452,12 +490,14 @@ function compactLine(label, value, maxLength) {
 function compactReaction(ctx) {
   const early = tweetText(ctx.early, 18);
   const middle = tweetText(ctx.middle, 18);
+  const label = tweetLabel(ctx, "reaction");
 
   if (early && middle) {
-    return `反応: ${early} → ${middle}`;
+    const arrow = pick(ctx, "reaction-arrow", [" → ", "からの", "、"]);
+    return `${label}: ${early}${arrow}${middle}`;
   }
 
-  return early || middle ? `反応: ${early || middle}` : "";
+  return early || middle ? `${label}: ${early || middle}` : "";
 }
 
 function tweetText(value, maxLength = 34) {
@@ -475,36 +515,184 @@ function truncateText(value, maxLength) {
 
 function pickupComment(ctx) {
   const text = `${ctx.result} ${ctx.good} ${ctx.reflection} ${ctx.next}`;
-  const resultWin = /満即|即|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(ctx.result);
+  const resultWin = /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(ctx.result);
   const resultMiss = /至らず|解散|NG|失敗/i.test(ctx.result);
-  const hasWin = /満即|即|連絡先|交換|成功|OK|合流|アポ|刺さ|笑顔|盛り上|温度感|上が|通りそう/i.test(text);
+  const hasWin = /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|刺さ|笑顔|盛り上|温度感|上が|通りそう|目ビーム|パワギラ/i.test(text);
   const hasMiss = /至らず|解散|NG|失敗|警戒|遅れ|反省|ミス|詰ま|課題|散った/i.test(text);
 
   if (resultWin) {
-    return "満即！きもちえぇー。";
+    return pick(ctx, "comment-result-win", [
+      "満即！きもちえぇー。",
+      "満即。これはきもちえぇー。",
+      "勝ち。きもちえぇー。",
+      "流れ良すぎ。満即！",
+      "今日のこれは満即案件。",
+      "即確アポ。これは勝ち。",
+      "パワギラ即の流れ。満即！",
+      "目ビーム刺さった。きもちえぇー。",
+    ]);
   }
 
   if (resultMiss) {
-    return "刺さりは見えた。次で回収。";
+    return pick(ctx, "comment-result-miss", [
+      "刺さりは見えた。次で回収。",
+      "今日は種まき。次で取る。",
+      "反省あり。でも勝ち筋はある。",
+      "ここは修正して次。",
+    ]);
   }
 
   if (hasWin) {
-    return "感触アリ。きもちえぇー。";
+    return pick(ctx, "comment-win", [
+      "感触アリ。きもちえぇー。",
+      "これは次いけるやつ。",
+      "温度感アリ。勝ち筋見えた。",
+      "刺さり確認。きもちえぇー。",
+      "目ビーム通った。感触アリ。",
+      "即確アポ見えた。次で回収。",
+      "パワギラ感あり。これは強い。",
+    ]);
   }
 
   if (hasMiss) {
-    return "刺さりは見えた。次で回収。";
+    return pick(ctx, "comment-miss", [
+      "刺さりは見えた。次で回収。",
+      "今日は種まき。次で取る。",
+      "反省あり。でも勝ち筋はある。",
+      "ここは修正して次。",
+      "目ビーム足りず。次で修正。",
+      "パワギラ出しすぎ。次は抑える。",
+    ]);
   }
 
-  return "これは勝ち筋。";
+  return pick(ctx, "comment-neutral", [
+    "これは勝ち筋。",
+    "次もこのノリ。",
+    "温度感拾えた。よし。",
+    "悪くない。継続。",
+    "目ビーム強めで継続。",
+    "即確アポまで持っていく。",
+  ]);
+}
+
+function slangLine(ctx) {
+  const text = `${ctx.open} ${ctx.early} ${ctx.middle} ${ctx.result} ${ctx.good}`;
+  const resultWin = /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(text);
+  const options = resultWin
+    ? [
+        "一言: 即確アポ見えた",
+        "一言: パワギラ即の流れ",
+        "一言: 目ビーム刺さり",
+        "一言: 回収ムーブ強め",
+      ]
+    : [
+        "一言: 目ビーム意識",
+        "一言: 即確アポ狙い",
+        "一言: パワギラは抑えめ",
+        "一言: 刺さり待ち",
+      ];
+
+  return pick(ctx, "slang-line", options);
 }
 
 function tweetTags(ctx) {
-  const tags = ["#即報", "#ナンパ"];
-  if (ctx.good || ctx.reflection || ctx.next) {
-    tags.push("#振り返り");
+  const tags = ["#即報"];
+  const text = `${ctx.result} ${ctx.good} ${ctx.reflection} ${ctx.next}`;
+  const resultWin = /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(text);
+
+  tags.push(pick(ctx, "tag-main", ["#ナンパ", "#声かけ", "#現場メモ", "#目ビーム"]));
+
+  if (resultWin && maybe(ctx, "tag-win", 0.7)) {
+    tags.push(pick(ctx, "tag-win-label", ["#満即", "#即確アポ", "#パワギラ即"]));
   }
-  return tags.join(" ");
+
+  if (ctx.good || ctx.reflection || ctx.next) {
+    tags.push(pick(ctx, "tag-review", ["#振り返り", "#反省メモ", "#改善"]));
+  }
+
+  return [...new Set(tags)].slice(0, 4).join(" ");
+}
+
+function tweetLabel(ctx, type) {
+  const labels = {
+    opponent: ["相手", "系統", "相手感"],
+    open: ["入り", "IN", "オープン"],
+    early: ["序盤", "初動", "序盤反応"],
+    middle: ["中盤", "展開", "中盤反応"],
+    reaction: ["反応", "温度感", "返り"],
+    result: ["結果", "着地", "回収"],
+    good: ["良", "刺さり", "良かった"],
+    reflection: ["反省", "課題", "修正"],
+    next: ["次", "次回", "次やる"],
+  };
+
+  return pick(ctx, `label-${type}`, labels[type] || [type]);
+}
+
+function pick(ctx, key, options) {
+  if (!options.length) {
+    return "";
+  }
+
+  return options[Math.floor(seedRandom(ctx, key) * options.length)];
+}
+
+function maybe(ctx, key, probability) {
+  return seedRandom(ctx, key) < probability;
+}
+
+function seedRandom(ctx, key) {
+  const seed = [
+    ctx.seed,
+    key,
+    ctx.area,
+    ctx.opponent,
+    ctx.open,
+    ctx.early,
+    ctx.middle,
+    ctx.result,
+    ctx.good,
+    ctx.reflection,
+    ctx.next,
+    ctx.memo,
+  ].join("|");
+  const random = createSeededRandom(seed);
+  return random();
+}
+
+function createSeededRandom(seed) {
+  let state = hashString(seed) || 0x6d2b79f5;
+
+  return function random() {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function hashString(value) {
+  let hash = 2166136261;
+
+  for (const char of String(value)) {
+    hash ^= char.codePointAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function createRandomSeed() {
+  const values = new Uint32Array(1);
+
+  if (globalThis.crypto && globalThis.crypto.getRandomValues) {
+    globalThis.crypto.getRandomValues(values);
+  } else {
+    values[0] = Math.floor(Math.random() * 0xffffffff);
+  }
+
+  return values[0].toString(36).toUpperCase().slice(-6).padStart(6, "0");
 }
 
 function toSentence(value) {
@@ -550,6 +738,7 @@ function fillSample() {
   applyState({
     tone: "tweet",
     length: "short",
+    seed: createRandomSeed(),
     area: "渋谷駅周辺",
     datetime: toDateTimeLocalValue(new Date()),
     opponent: "カフェ帰りの綺麗めOL系",
@@ -557,9 +746,9 @@ function fillSample() {
     early: "最初だけ警戒。短く返したら笑顔",
     middle: "休日トークで温度感上がり",
     result: "連絡先交換まで完了。次回アポも通りそう",
-    good: "距離感とテンポが刺さった",
+    good: "目ビームとテンポが刺さった",
     reflection: "クロージング前に少し話題が散った",
-    next: "共通点が出たら即打診",
+    next: "共通点が出たら即確アポ打診",
     memo: "雨で人流速め。立ち位置は改善",
   });
   renderAndSave(true);
@@ -567,7 +756,10 @@ function fillSample() {
 }
 
 function clearInputs() {
-  const emptyState = { ...DEFAULT_STATE };
+  const emptyState = {
+    ...DEFAULT_STATE,
+    seed: createRandomSeed(),
+  };
   for (const key of FIELD_KEYS) {
     emptyState[key] = "";
   }
@@ -575,6 +767,16 @@ function clearInputs() {
   applyState(emptyState);
   renderAndSave(true);
   showToast("入力をクリアしました");
+}
+
+function randomizeSeed() {
+  const field = document.querySelector('[data-control="seed"]');
+  if (field) {
+    field.value = createRandomSeed();
+  }
+
+  renderAndSave(true);
+  showToast("シードを変更しました");
 }
 
 function toDateTimeLocalValue(date) {
