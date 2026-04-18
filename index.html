@@ -102,6 +102,52 @@
               <button class="button secondary seed-button" type="button" id="randomSeedButton">ランダム</button>
             </div>
 
+            <fieldset class="option-group result-type-options">
+              <legend>結果タイプ</legend>
+              <div class="segmented result-type-segmented" role="radiogroup" aria-label="結果タイプ">
+                <label>
+                  <input type="radio" name="resultType" value="auto" checked>
+                  <span>自動</span>
+                </label>
+                <label>
+                  <input type="radio" name="resultType" value="manseki">
+                  <span>満即</span>
+                </label>
+                <label>
+                  <input type="radio" name="resultType" value="junseki">
+                  <span>準即</span>
+                </label>
+                <label>
+                  <input type="radio" name="resultType" value="banget">
+                  <span>番ゲ</span>
+                </label>
+                <label>
+                  <input type="radio" name="resultType" value="line">
+                  <span>LINE交換</span>
+                </label>
+                <label>
+                  <input type="radio" name="resultType" value="appointment">
+                  <span>即確アポ</span>
+                </label>
+                <label>
+                  <input type="radio" name="resultType" value="ask">
+                  <span>アポ打診</span>
+                </label>
+                <label>
+                  <input type="radio" name="resultType" value="close">
+                  <span>解散</span>
+                </label>
+                <label>
+                  <input type="radio" name="resultType" value="ng">
+                  <span>NG</span>
+                </label>
+                <label>
+                  <input type="radio" name="resultType" value="seed">
+                  <span>種まき</span>
+                </label>
+              </div>
+            </fieldset>
+
             <fieldset class="option-group profile-options">
               <legend>案件プロフィール</legend>
               <label class="toggle-line">
@@ -147,6 +193,7 @@
 スト: 7
 カップ: D
 結果: 連絡先交換。即確アポ見えた
+結果タイプ: 即確アポ
 良: 目ビーム刺さり
 反省: クロージング前に話題が散った"></textarea>
               </label>

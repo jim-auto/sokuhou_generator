@@ -37,9 +37,90 @@ const DEFAULT_STATE = {
   tone: "street",
   length: "short",
   inputMode: "manual",
+  resultType: "auto",
   seed: "",
   includeProfile: true,
   bulkMemo: "",
+};
+
+const RESULT_TYPE_CONFIG = {
+  auto: {
+    labels: ["自動"],
+    tag: "",
+    win: false,
+    miss: false,
+  },
+  manseki: {
+    labels: ["満即"],
+    tag: "#満即",
+    win: true,
+    comments: ["満即！きもちえぇー。", "満即。これは勝ち。", "満即案件。きもちえぇー。"],
+    compact: ["満即きもちえぇー", "満即で勝ち", "満即案件"],
+    slang: ["一言: 満即案件", "一言: 回収完了", "一言: 勝ち筋回収"],
+  },
+  junseki: {
+    labels: ["準即"],
+    tag: "#準即",
+    win: true,
+    comments: ["準即。次で満即狙い。", "準即回収。流れ良し。", "準即で勝ち筋確認。"],
+    compact: ["準即回収", "次で満即", "勝ち筋確認"],
+    slang: ["一言: 準即回収", "一言: 次で満即", "一言: 流れ良し"],
+  },
+  banget: {
+    labels: ["番ゲ"],
+    tag: "#番ゲ",
+    win: true,
+    comments: ["番ゲ完了。ここから回収。", "番ゲ。次の導線作る。", "番ゲで勝ち筋残し。"],
+    compact: ["番ゲ完了", "ここから回収", "導線作る"],
+    slang: ["一言: 番ゲ完了", "一言: 回収導線", "一言: 次アポ狙い"],
+  },
+  line: {
+    labels: ["LINE交換"],
+    tag: "#LINE交換",
+    win: true,
+    comments: ["LINE交換完了。次で回収。", "LINE交換。アポ線作る。", "連絡先回収。悪くない。"],
+    compact: ["LINE交換完了", "次で回収", "アポ線作る"],
+    slang: ["一言: LINE回収", "一言: アポ線作る", "一言: 次回収"],
+  },
+  appointment: {
+    labels: ["即確アポ"],
+    tag: "#即確アポ",
+    win: true,
+    comments: ["即確アポ。これは勝ち。", "即確アポ見えた。次で回収。", "アポ線くっきり。きもちえぇー。"],
+    compact: ["即確アポで勝ち", "アポ線くっきり", "次で回収"],
+    slang: ["一言: 即確アポ見えた", "一言: アポ線くっきり", "一言: 打診通った"],
+  },
+  ask: {
+    labels: ["アポ打診"],
+    tag: "#アポ打診",
+    win: true,
+    comments: ["アポ打診まで完了。次で回収。", "打診通した。アポ線あり。", "アポ打診済み。悪くない。"],
+    compact: ["アポ打診完了", "打診通した", "アポ線あり"],
+    slang: ["一言: アポ打診済み", "一言: 打診通した", "一言: 次回収"],
+  },
+  close: {
+    labels: ["解散"],
+    tag: "#解散",
+    miss: true,
+    comments: ["解散。刺さりは見えた。次で回収。", "解散。今日は種まき。", "解散。修正して次。"],
+    compact: ["解散、次で回収", "種まき完了", "修正して次"],
+    slang: ["一言: 解散ログ", "一言: 次で回収", "一言: 種まき"],
+  },
+  ng: {
+    labels: ["NG"],
+    tag: "#NG",
+    miss: true,
+    comments: ["NG。切り替えて次。", "NG。損切り早めでOK。", "NG。刺さり待ちで次。"],
+    compact: ["NG、次", "損切りOK", "切り替え"],
+    slang: ["一言: 損切り", "一言: 切り替え", "一言: 次行く"],
+  },
+  seed: {
+    labels: ["種まき"],
+    tag: "#種まき",
+    comments: ["種まき完了。次で回収。", "今日は種まき。導線は残した。", "種まきログ。次アポ狙い。"],
+    compact: ["種まき完了", "導線残し", "次アポ狙い"],
+    slang: ["一言: 種まき完了", "一言: 導線残し", "一言: 次アポ狙い"],
+  },
 };
 
 const NANPA_GENRE_CONFIG = {
@@ -582,6 +663,7 @@ function collectState() {
   state.tone = formData.get("tone") || DEFAULT_STATE.tone;
   state.length = formData.get("length") || DEFAULT_STATE.length;
   state.inputMode = formData.get("inputMode") || DEFAULT_STATE.inputMode;
+  state.resultType = formData.get("resultType") || DEFAULT_STATE.resultType;
 
   return state;
 }
@@ -610,6 +692,7 @@ function applyState(state) {
   setRadioValue("tone", nextState.tone);
   setRadioValue("length", nextState.length);
   setRadioValue("inputMode", nextState.inputMode);
+  setRadioValue("resultType", nextState.resultType);
 }
 
 function setRadioValue(name, value) {
@@ -718,6 +801,7 @@ function loadState() {
           tone: DEFAULT_STATE.tone,
           length: DEFAULT_STATE.length,
           inputMode: DEFAULT_STATE.inputMode,
+          resultType: DEFAULT_STATE.resultType,
           seed: createRandomSeed(),
           includeProfile: DEFAULT_STATE.includeProfile,
         };
@@ -776,6 +860,7 @@ function normalizeState(state) {
     tone,
     length: state.length || DEFAULT_STATE.length,
     inputMode: state.inputMode || DEFAULT_STATE.inputMode,
+    resultType: normalizeResultType(state.resultType),
     seed: state.seed || "default",
     includeProfile: state.includeProfile !== false && state.includeProfile !== "false",
     bulkMemo: String(state.bulkMemo || "").trim(),
@@ -790,6 +875,7 @@ function normalizeState(state) {
     for (const key of FIELD_KEYS) {
       normalized[key] = cleanMultiline(parsed[key] || normalized[key]);
     }
+    normalized.resultType = normalizeResultType(parsed.resultType || normalized.resultType);
     if (!normalized.memo) {
       normalized.memo = cleanMultiline(normalized.bulkMemo);
     }
@@ -824,6 +910,32 @@ function nanpaGenre(ctx) {
 function genreList(ctx, key, fallback) {
   const list = nanpaGenre(ctx)[key];
   return list && list.length ? list : fallback;
+}
+
+function normalizeResultType(value) {
+  const text = String(value || DEFAULT_STATE.resultType).trim();
+  if (Object.prototype.hasOwnProperty.call(RESULT_TYPE_CONFIG, text)) {
+    return text;
+  }
+
+  return inferResultType(text) || DEFAULT_STATE.resultType;
+}
+
+function resultTypeConfig(ctx) {
+  return RESULT_TYPE_CONFIG[ctx.resultType] || RESULT_TYPE_CONFIG.auto;
+}
+
+function inferResultType(text) {
+  if (/満即/.test(text)) return "manseki";
+  if (/準即/.test(text)) return "junseki";
+  if (/番ゲ|番号|番交換/.test(text)) return "banget";
+  if (/LINE|ライン|連絡先/.test(text)) return "line";
+  if (/即確|アポ確|確アポ/.test(text)) return "appointment";
+  if (/アポ打診|打診/.test(text)) return "ask";
+  if (/解散/.test(text)) return "close";
+  if (/NG|拒否|無理/.test(text)) return "ng";
+  if (/種まき|種撒き/.test(text)) return "seed";
+  return "";
 }
 
 function buildShortReport(ctx) {
@@ -907,6 +1019,7 @@ function buildTweetReport(ctx) {
 function buildTweetShortReport(ctx) {
   return oneSentence([
     buildTweetHeadline(ctx),
+    resultTypeLine(ctx),
     profileLine(ctx, 32),
     compactLine(tweetLabel(ctx, "opponent"), ctx.opponent, 18),
     pickLine(ctx, "short-main", [
@@ -927,6 +1040,7 @@ function buildTweetShortReport(ctx) {
 function buildTweetStandardReport(ctx) {
   return fitLinesToLimit([
     buildTweetHeadline(ctx),
+    resultTypeLine(ctx),
     profileLine(ctx, 36),
     compactLine(tweetLabel(ctx, "opponent"), ctx.opponent, 20),
     pickLine(ctx, "standard-main", [
@@ -945,6 +1059,7 @@ function buildTweetStandardReport(ctx) {
 function buildTweetDetailedReport(ctx) {
   return fitLinesToLimit([
     buildTweetHeadline(ctx),
+    resultTypeLine(ctx),
     profileLine(ctx, 40),
     compactLine(tweetLabel(ctx, "opponent"), ctx.opponent, 22),
     compactLine(tweetLabel(ctx, "open"), ctx.open, 24),
@@ -1007,6 +1122,10 @@ function oneSentence(parts) {
     .filter(Boolean)
     .map(stripEndingPunctuation)
     .filter(Boolean)) {
+    if (hasSimilarSentencePart(selected, part)) {
+      continue;
+    }
+
     const candidate = `${[...selected, part].join("、")}。`;
     if (charLength(candidate) <= MAX_REPORT_CHARS) {
       selected.push(part);
@@ -1021,6 +1140,17 @@ function stripEndingPunctuation(value) {
     .replace(/\s+/g, " ")
     .trim()
     .replace(/[。．.!！?？]+$/u, "");
+}
+
+function hasSimilarSentencePart(selected, part) {
+  const core = sentencePartCore(part);
+  return selected.some((item) => sentencePartCore(item) === core);
+}
+
+function sentencePartCore(value) {
+  return stripEndingPunctuation(value)
+    .replace(/^[^:：]{1,8}[:：]\s*/u, "")
+    .trim();
 }
 
 function limitReport(report, maxLength = MAX_REPORT_CHARS) {
@@ -1054,6 +1184,15 @@ function pickLine(ctx, key, lines) {
 function compactLine(label, value, maxLength) {
   const text = tweetText(value, maxLength);
   return text ? `${label}: ${text}` : "";
+}
+
+function resultTypeLine(ctx) {
+  const config = resultTypeConfig(ctx);
+  if (ctx.resultType === "auto") {
+    return "";
+  }
+
+  return `結果種別: ${pick(ctx, "result-type-label", config.labels || [ctx.resultType])}`;
 }
 
 function profileLine(ctx, maxLength = 36) {
@@ -1138,21 +1277,22 @@ function tweetText(value, maxLength = 34) {
 
 function pickupComment(ctx, compact = false) {
   const text = `${ctx.result} ${ctx.good} ${ctx.reflection} ${ctx.next}`;
-  const resultWin = /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(ctx.result);
-  const resultMiss = /至らず|解散|NG|失敗/i.test(ctx.result);
+  const resultConfig = resultTypeConfig(ctx);
+  const resultWin = resultConfig.win || /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(ctx.result);
+  const resultMiss = resultConfig.miss || /至らず|解散|NG|失敗/i.test(ctx.result);
   const hasWin = /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|刺さ|笑顔|盛り上|温度感|上が|通りそう|目ビーム|パワギラ/i.test(text);
   const hasMiss = /至らず|解散|NG|失敗|警戒|遅れ|反省|ミス|詰ま|課題|散った/i.test(text);
   const suffix = compact ? "-compact" : "";
 
   if (resultWin) {
     return pick(ctx, `comment-result-win${suffix}`, compact
-      ? genreList(ctx, "resultWinCompact", [
+      ? resultConfig.compact || genreList(ctx, "resultWinCompact", [
           "満即きもちえぇー",
           "即確アポで勝ち",
           "パワギラ即の流れ",
           "目ビーム刺さり",
         ])
-      : genreList(ctx, "resultWin", [
+      : resultConfig.comments || genreList(ctx, "resultWin", [
           "満即！きもちえぇー。",
           "満即。これはきもちえぇー。",
           "勝ち。きもちえぇー。",
@@ -1166,13 +1306,13 @@ function pickupComment(ctx, compact = false) {
 
   if (resultMiss) {
     return pick(ctx, `comment-result-miss${suffix}`, compact
-      ? genreList(ctx, "missCompact", [
+      ? resultConfig.compact || genreList(ctx, "missCompact", [
           "次で回収",
           "種まき完了",
           "勝ち筋は見えた",
           "修正して次",
         ])
-      : genreList(ctx, "miss", [
+      : resultConfig.comments || genreList(ctx, "miss", [
           "刺さりは見えた。次で回収。",
           "今日は種まき。次で取る。",
           "反省あり。でも勝ち筋はある。",
@@ -1236,8 +1376,9 @@ function pickupComment(ctx, compact = false) {
 
 function slangLine(ctx) {
   const text = `${ctx.open} ${ctx.early} ${ctx.middle} ${ctx.result} ${ctx.good}`;
-  const resultWin = /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(text);
-  const options = resultWin
+  const resultConfig = resultTypeConfig(ctx);
+  const resultWin = resultConfig.win || /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(text);
+  const options = resultConfig.slang || (resultWin
     ? genreList(ctx, "slangWin", [
         "一言: 即確アポ見えた",
         "一言: パワギラ即の流れ",
@@ -1249,7 +1390,7 @@ function slangLine(ctx) {
         "一言: 即確アポ狙い",
         "一言: パワギラは抑えめ",
         "一言: 刺さり待ち",
-      ]);
+      ]));
 
   return pick(ctx, "slang-line", options);
 }
@@ -1257,9 +1398,14 @@ function slangLine(ctx) {
 function tweetTags(ctx) {
   const tags = ["#即報"];
   const text = `${ctx.result} ${ctx.good} ${ctx.reflection} ${ctx.next}`;
-  const resultWin = /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(text);
+  const resultConfig = resultTypeConfig(ctx);
+  const resultWin = resultConfig.win || /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(text);
 
   tags.push(pick(ctx, "tag-main", genreList(ctx, "tags", ["#ナンパ", "#声かけ", "#現場メモ", "#目ビーム"])));
+
+  if (resultConfig.tag) {
+    tags.push(resultConfig.tag);
+  }
 
   if (resultWin && maybe(ctx, "tag-win", 0.7)) {
     tags.push(pick(ctx, "tag-win-label", ["#満即", "#即確アポ", "#パワギラ即"]));
@@ -1321,6 +1467,7 @@ function seedRandom(ctx, key) {
     ctx.early,
     ctx.middle,
     ctx.result,
+    ctx.resultType,
     ctx.good,
     ctx.reflection,
     ctx.next,
@@ -1431,6 +1578,10 @@ function parseBulkMemo(value) {
 
   for (const line of unlabeled) {
     const key = inferBulkLineKey(line);
+    const inferredResultType = inferResultType(line);
+    if (inferredResultType && !parsed.resultType) {
+      parsed.resultType = inferredResultType;
+    }
     parsed[key] = appendText(parsed[key], line);
   }
 
@@ -1453,6 +1604,7 @@ function bulkLabelToKey(label) {
     [/^(序盤|初動|序盤反応)$/, "early"],
     [/^(中盤|展開|中盤反応)$/, "middle"],
     [/^(結果|着地|回収|result)$/, "result"],
+    [/^(結果タイプ|結果種別|種別|type)$/, "resultType"],
     [/^(良|良かった|刺さり|good)$/, "good"],
     [/^(反省|課題|修正|reflection)$/, "reflection"],
     [/^(次|次回|改善|next)$/, "next"],
@@ -1518,6 +1670,7 @@ function fillSample() {
     tone: "beam",
     length: "short",
     inputMode: "manual",
+    resultType: "appointment",
     seed: createRandomSeed(),
     area: "渋谷駅周辺",
     datetime: toDateTimeLocalValue(new Date()),
