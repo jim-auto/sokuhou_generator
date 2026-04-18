@@ -1,7 +1,10 @@
 "use strict";
 
-const LEGACY_STORAGE_KEY = "sokuhou-generator-state-v1";
-const STORAGE_KEY = "sokuhou-generator-state-v2";
+const LEGACY_STORAGE_KEYS = [
+  "sokuhou-generator-state-v2",
+  "sokuhou-generator-state-v1",
+];
+const STORAGE_KEY = "sokuhou-generator-state-v3";
 
 const FIELD_KEYS = [
   "area",
@@ -19,7 +22,7 @@ const FIELD_KEYS = [
 
 const DEFAULT_STATE = {
   tone: "tweet",
-  length: "standard",
+  length: "short",
 };
 
 const TONE_CONFIG = {
@@ -218,12 +221,15 @@ function loadState() {
       return JSON.parse(saved);
     }
 
-    const legacySaved = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (legacySaved) {
-      return {
-        ...JSON.parse(legacySaved),
-        tone: DEFAULT_STATE.tone,
-      };
+    for (const key of LEGACY_STORAGE_KEYS) {
+      const legacySaved = localStorage.getItem(key);
+      if (legacySaved) {
+        return {
+          ...JSON.parse(legacySaved),
+          tone: DEFAULT_STATE.tone,
+          length: DEFAULT_STATE.length,
+        };
+      }
     }
 
     return DEFAULT_STATE;
@@ -358,14 +364,18 @@ function buildTweetReport(ctx) {
 function buildTweetShortReport(ctx) {
   return joinLines([
     buildTweetHeadline(ctx),
+    compactLine("相手", ctx.opponent, 26),
     firstPresent([
-      ctx.result ? `結果: ${tweetText(ctx.result)}` : "",
-      ctx.open ? `入り: ${tweetText(ctx.open)}` : "",
-      ctx.early ? `反応: ${tweetText(ctx.early)}` : "",
+      compactLine("結果", ctx.result, 34),
+      compactLine("入り", ctx.open, 34),
+      compactLine("反応", ctx.early, 34),
     ]),
-    ctx.good ? `良かった: ${tweetText(ctx.good)}` : "",
-    ctx.reflection ? `反省: ${tweetText(ctx.reflection)}` : "",
-    ctx.next ? `次: ${tweetText(ctx.next)}` : "",
+    firstPresent([
+      compactLine("良", ctx.good, 28),
+      compactLine("反省", ctx.reflection, 28),
+      compactLine("次", ctx.next, 28),
+    ]),
+    pickupComment(ctx),
     tweetTags(ctx),
   ]);
 }
@@ -373,37 +383,33 @@ function buildTweetShortReport(ctx) {
 function buildTweetStandardReport(ctx) {
   return joinLines([
     buildTweetHeadline(ctx),
-    ctx.opponent ? `相手: ${tweetText(ctx.opponent)}` : "",
-    ctx.open ? `入り: ${tweetText(ctx.open)}` : "",
-    ctx.early ? `序盤: ${tweetText(ctx.early)}` : "",
-    ctx.middle ? `中盤: ${tweetText(ctx.middle)}` : "",
-    ctx.result ? `結果: ${tweetText(ctx.result)}` : "",
+    compactLine("相手", ctx.opponent, 28),
+    compactLine("入り", ctx.open, 34),
+    compactReaction(ctx),
+    compactLine("結果", ctx.result, 36),
     "",
-    ctx.good ? `良かった: ${tweetText(ctx.good)}` : "",
-    ctx.reflection ? `反省: ${tweetText(ctx.reflection)}` : "",
-    ctx.next ? `次やる: ${tweetText(ctx.next)}` : "",
+    compactLine("良", ctx.good, 30),
+    compactLine("反省", ctx.reflection, 30),
+    compactLine("次", ctx.next, 30),
+    pickupComment(ctx),
     tweetTags(ctx),
   ]);
 }
 
 function buildTweetDetailedReport(ctx) {
-  return joinBlocks([
-    joinLines([
-      buildTweetHeadline(ctx),
-      ctx.opponent ? `相手: ${tweetText(ctx.opponent)}` : "",
-    ]),
-    joinLines([
-      ctx.open ? `1. 入り: ${tweetText(ctx.open)}` : "",
-      ctx.early ? `2. 序盤: ${tweetText(ctx.early)}` : "",
-      ctx.middle ? `3. 中盤: ${tweetText(ctx.middle)}` : "",
-      ctx.result ? `4. 結果: ${tweetText(ctx.result)}` : "",
-    ]),
-    joinLines([
-      ctx.good ? `良かった点: ${tweetText(ctx.good)}` : "",
-      ctx.reflection ? `反省点: ${tweetText(ctx.reflection)}` : "",
-      ctx.next ? `次回: ${tweetText(ctx.next)}` : "",
-    ]),
-    ctx.memo ? `メモ: ${tweetText(ctx.memo)}` : "",
+  return joinLines([
+    buildTweetHeadline(ctx),
+    compactLine("相手", ctx.opponent, 30),
+    compactLine("入り", ctx.open, 38),
+    compactLine("序盤", ctx.early, 38),
+    compactLine("中盤", ctx.middle, 38),
+    compactLine("結果", ctx.result, 38),
+    "",
+    compactLine("良かった", ctx.good, 36),
+    compactLine("反省", ctx.reflection, 36),
+    compactLine("次", ctx.next, 36),
+    compactLine("メモ", ctx.memo, 34),
+    pickupComment(ctx),
     tweetTags(ctx),
   ]);
 }
@@ -439,12 +445,62 @@ function firstPresent(lines) {
   return lines.find(Boolean) || "";
 }
 
-function tweetText(value) {
-  return cleanMultiline(value).replace(/[。．.]+$/u, "");
+function compactLine(label, value, maxLength) {
+  return value ? `${label}: ${tweetText(value, maxLength)}` : "";
+}
+
+function compactReaction(ctx) {
+  const early = tweetText(ctx.early, 18);
+  const middle = tweetText(ctx.middle, 18);
+
+  if (early && middle) {
+    return `反応: ${early} → ${middle}`;
+  }
+
+  return early || middle ? `反応: ${early || middle}` : "";
+}
+
+function tweetText(value, maxLength = 34) {
+  return truncateText(cleanMultiline(value).replace(/[。．.]+$/u, ""), maxLength);
+}
+
+function truncateText(value, maxLength) {
+  const chars = Array.from(value);
+  if (chars.length <= maxLength) {
+    return value;
+  }
+
+  return `${chars.slice(0, maxLength - 1).join("")}…`;
+}
+
+function pickupComment(ctx) {
+  const text = `${ctx.result} ${ctx.good} ${ctx.reflection} ${ctx.next}`;
+  const resultWin = /満即|即|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(ctx.result);
+  const resultMiss = /至らず|解散|NG|失敗/i.test(ctx.result);
+  const hasWin = /満即|即|連絡先|交換|成功|OK|合流|アポ|刺さ|笑顔|盛り上|温度感|上が|通りそう/i.test(text);
+  const hasMiss = /至らず|解散|NG|失敗|警戒|遅れ|反省|ミス|詰ま|課題|散った/i.test(text);
+
+  if (resultWin) {
+    return "満即！きもちえぇー。";
+  }
+
+  if (resultMiss) {
+    return "刺さりは見えた。次で回収。";
+  }
+
+  if (hasWin) {
+    return "感触アリ。きもちえぇー。";
+  }
+
+  if (hasMiss) {
+    return "刺さりは見えた。次で回収。";
+  }
+
+  return "これは勝ち筋。";
 }
 
 function tweetTags(ctx) {
-  const tags = ["#即報"];
+  const tags = ["#即報", "#ナンパ"];
   if (ctx.good || ctx.reflection || ctx.next) {
     tags.push("#振り返り");
   }
@@ -493,18 +549,18 @@ function hasReportInput(ctx) {
 function fillSample() {
   applyState({
     tone: "tweet",
-    length: "standard",
+    length: "short",
     area: "渋谷駅周辺",
     datetime: toDateTimeLocalValue(new Date()),
-    opponent: "20代後半・落ち着いた雰囲気",
-    open: "道案内の話題から自然に入り、相手の移動目的を確認",
-    early: "最初は少し警戒あり。こちらが短く返すと笑顔が出て会話量が増えた",
-    middle: "仕事終わりの流れから休日の話題へ展開。共通点が見つかって温度感は上がった",
-    result: "会話は約5分。連絡先交換までは至らず、改札前で解散",
-    good: "声量と距離感を抑えたことで、序盤の警戒を強めずに会話へ入れた",
-    reflection: "中盤で話題を広げすぎて、次の打診までの流れが少し遅れた",
-    next: "共通点が出た時点で一度軽く打診し、反応を見て深掘りする",
-    memo: "雨で人の流れが速め。立ち止まりやすい場所選びは再検討",
+    opponent: "カフェ帰りの綺麗めOL系",
+    open: "道案内から自然にイン",
+    early: "最初だけ警戒。短く返したら笑顔",
+    middle: "休日トークで温度感上がり",
+    result: "連絡先交換まで完了。次回アポも通りそう",
+    good: "距離感とテンポが刺さった",
+    reflection: "クロージング前に少し話題が散った",
+    next: "共通点が出たら即打診",
+    memo: "雨で人流速め。立ち位置は改善",
   });
   renderAndSave(true);
   showToast("サンプルを入力しました");
