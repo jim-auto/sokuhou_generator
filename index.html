@@ -57,16 +57,30 @@
                 <legend>長さ</legend>
                 <div class="segmented" role="radiogroup" aria-label="出力の長さ">
                   <label>
-                    <input type="radio" name="length" value="short">
+                    <input type="radio" name="length" value="short" checked>
                     <span>短め</span>
                   </label>
                   <label>
-                    <input type="radio" name="length" value="standard" checked>
+                    <input type="radio" name="length" value="standard">
                     <span>標準</span>
                   </label>
                   <label>
                     <input type="radio" name="length" value="detailed">
                     <span>詳しめ</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset class="option-group">
+                <legend>入力モード</legend>
+                <div class="segmented mode-segmented" role="radiogroup" aria-label="入力モード">
+                  <label>
+                    <input type="radio" name="inputMode" value="manual" checked>
+                    <span>詳細入力</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="inputMode" value="bulk">
+                    <span>一括メモ</span>
                   </label>
                 </div>
               </fieldset>
@@ -80,7 +94,57 @@
               <button class="button secondary seed-button" type="button" id="randomSeedButton">ランダム</button>
             </div>
 
-            <div class="field-grid">
+            <fieldset class="option-group profile-options">
+              <legend>案件プロフィール</legend>
+              <label class="toggle-line">
+                <input type="checkbox" data-control="includeProfile" checked>
+                <span>出力に入れる</span>
+              </label>
+              <div class="profile-grid">
+                <label class="field">
+                  <span>年齢</span>
+                  <input type="text" data-field="age" placeholder="例: 24" autocomplete="off" inputmode="numeric">
+                </label>
+                <label class="field">
+                  <span>職業</span>
+                  <input type="text" data-field="occupation" placeholder="例: OL" autocomplete="off">
+                </label>
+                <label class="field">
+                  <span>スト値</span>
+                  <input type="text" data-field="streetValue" placeholder="例: 7" autocomplete="off" inputmode="decimal">
+                </label>
+                <label class="field">
+                  <span>カップ</span>
+                  <input type="text" data-field="cup" placeholder="例: D" autocomplete="off">
+                </label>
+                <label class="field">
+                  <span>スペ値</span>
+                  <input type="text" data-field="specValue" placeholder="例: 8" autocomplete="off" inputmode="decimal">
+                </label>
+                <label class="field">
+                  <span>JOJO</span>
+                  <input type="text" data-field="jojo" placeholder="例: 有" autocomplete="off">
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="bulk-panel" id="bulkPanel" hidden>
+              <label class="field full">
+                <span>一括メモ</span>
+                <textarea data-control="bulkMemo" rows="9" placeholder="例:
+エリア: 渋谷
+相手: 綺麗めOL
+年齢: 24
+職業: OL
+スト: 7
+カップ: D
+結果: 連絡先交換。即確アポ見えた
+良: 目ビーム刺さり
+反省: クロージング前に話題が散った"></textarea>
+              </label>
+            </div>
+
+            <div class="field-grid" id="manualFields">
               <label class="field">
                 <span>エリア</span>
                 <input type="text" data-field="area" placeholder="例: 渋谷駅周辺" autocomplete="off">
