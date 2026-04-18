@@ -539,21 +539,23 @@ function fitLinesToLimit(lines, maxLength = MAX_REPORT_CHARS) {
     }
   }
 
-  if (!selected.length) {
-    return truncateText(lines.find(Boolean) || "", maxLength);
-  }
-
   return selected.join("\n");
 }
 
 function oneSentence(parts) {
-  const text = parts
+  const selected = [];
+
+  for (const part of parts
     .filter(Boolean)
     .map(stripEndingPunctuation)
-    .filter(Boolean)
-    .join("、");
+    .filter(Boolean)) {
+    const candidate = `${[...selected, part].join("、")}。`;
+    if (charLength(candidate) <= MAX_REPORT_CHARS) {
+      selected.push(part);
+    }
+  }
 
-  return limitReport(text ? `${text}。` : "");
+  return selected.length ? `${selected.join("、")}。` : "";
 }
 
 function stripEndingPunctuation(value) {
@@ -565,7 +567,17 @@ function stripEndingPunctuation(value) {
 
 function limitReport(report, maxLength = MAX_REPORT_CHARS) {
   const text = String(report || "").trim();
-  return charLength(text) <= maxLength ? text : truncateText(text, maxLength);
+  if (charLength(text) <= maxLength) {
+    return text;
+  }
+
+  const lineFit = fitLinesToLimit(text.split(/\n+/), maxLength);
+  if (lineFit) {
+    return lineFit;
+  }
+
+  const sentenceFit = oneSentence(text.split(/[、。]/));
+  return sentenceFit || "【即報】文字数上限内に収まる項目がありません。";
 }
 
 function charLength(value) {
@@ -582,7 +594,8 @@ function pickLine(ctx, key, lines) {
 }
 
 function compactLine(label, value, maxLength) {
-  return value ? `${label}: ${tweetText(value, maxLength)}` : "";
+  const text = tweetText(value, maxLength);
+  return text ? `${label}: ${text}` : "";
 }
 
 function profileLine(ctx, maxLength = 36) {
@@ -604,7 +617,20 @@ function profileText(ctx, maxLength = 32) {
     formatPrefixedValue("JOJO", ctx.jojo),
   ].filter(Boolean);
 
-  return parts.length ? truncateText(parts.join("/"), maxLength) : "";
+  return fitInlineParts(parts, maxLength, "/");
+}
+
+function fitInlineParts(parts, maxLength, separator = "/") {
+  const selected = [];
+
+  for (const part of parts.filter(Boolean)) {
+    const candidate = [...selected, part].join(separator);
+    if (charLength(candidate) <= maxLength) {
+      selected.push(part);
+    }
+  }
+
+  return selected.join(separator);
 }
 
 function formatAge(value) {
@@ -648,16 +674,8 @@ function compactReaction(ctx) {
 }
 
 function tweetText(value, maxLength = 34) {
-  return truncateText(cleanMultiline(value).replace(/[。．.]+$/u, ""), maxLength);
-}
-
-function truncateText(value, maxLength) {
-  const chars = Array.from(value);
-  if (chars.length <= maxLength) {
-    return value;
-  }
-
-  return `${chars.slice(0, maxLength - 1).join("")}…`;
+  const text = cleanMultiline(value).replace(/[。．.]+$/u, "");
+  return charLength(text) <= maxLength ? text : "";
 }
 
 function pickupComment(ctx, compact = false) {
