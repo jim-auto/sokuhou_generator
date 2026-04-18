@@ -34,12 +34,379 @@ const CONTROL_KEYS = [
 ];
 
 const DEFAULT_STATE = {
-  tone: "tweet",
+  tone: "street",
   length: "short",
   inputMode: "manual",
   seed: "",
   includeProfile: true,
   bulkMemo: "",
+};
+
+const NANPA_GENRE_CONFIG = {
+  street: {
+    resultWin: [
+      "満即！きもちえぇー。",
+      "満即。これは勝ち。",
+      "刺さり確認。きもちえぇー。",
+      "今日のこれは満即案件。",
+    ],
+    resultWinCompact: [
+      "満即きもちえぇー",
+      "これは満即案件",
+      "刺さり確認",
+      "勝ち筋回収",
+    ],
+    win: [
+      "感触アリ。きもちえぇー。",
+      "これは次いけるやつ。",
+      "勝ち筋見えた。",
+    ],
+    winCompact: [
+      "感触アリ",
+      "次いけるやつ",
+      "勝ち筋見えた",
+    ],
+    miss: [
+      "刺さりは見えた。次で回収。",
+      "今日は種まき。次で取る。",
+      "ここは修正して次。",
+    ],
+    missCompact: [
+      "次で回収",
+      "種まき完了",
+      "修正して次",
+    ],
+    neutral: [
+      "これは勝ち筋。",
+      "次もこのノリ。",
+      "温度感拾えた。よし。",
+    ],
+    neutralCompact: [
+      "これは勝ち筋",
+      "次もこのノリ",
+      "温度感拾えた",
+    ],
+    slangWin: [
+      "一言: 即確アポ見えた",
+      "一言: 回収ムーブ強め",
+      "一言: 刺さり確認",
+    ],
+    slangBase: [
+      "一言: 目ビーム意識",
+      "一言: 即確アポ狙い",
+      "一言: 刺さり待ち",
+    ],
+    tags: ["#ナンパ", "#声かけ", "#現場メモ"],
+  },
+  power: {
+    labels: {
+      open: ["入り", "押し出し", "IN"],
+      reaction: ["食いつき", "温度感", "返り"],
+      result: ["即", "回収", "着地"],
+      good: ["押し勝ち", "刺さり", "良"],
+      reflection: ["抑え", "修正", "反省"],
+      next: ["次即", "次回収", "次"],
+    },
+    resultWin: [
+      "パワギラ即の流れ。満即！",
+      "押し切りすぎず満即。きもちえぇー。",
+      "パワギラ刺さった。勝ち。",
+      "即までの圧がちょうど良かった。",
+    ],
+    resultWinCompact: [
+      "パワギラ即",
+      "押し勝ち満即",
+      "即まで強い",
+      "圧ちょうど良し",
+    ],
+    win: [
+      "パワギラ感あり。これは強い。",
+      "押しの温度感アリ。",
+      "即の匂いあり。次で回収。",
+    ],
+    winCompact: [
+      "パワギラ感アリ",
+      "即の匂い",
+      "次で回収",
+    ],
+    miss: [
+      "パワギラ出しすぎ。次は抑える。",
+      "押しの強度を修正して次。",
+      "圧を抜けば取れる。",
+    ],
+    missCompact: [
+      "圧を修正",
+      "次は抑える",
+      "押し引き修正",
+    ],
+    neutral: [
+      "パワギラは抑えめで継続。",
+      "押し引き見ながら次。",
+      "即の線はまだある。",
+    ],
+    neutralCompact: [
+      "押し引き見る",
+      "即線あり",
+      "抑えめ継続",
+    ],
+    slangWin: [
+      "一言: パワギラ即の流れ",
+      "一言: 押し勝ち案件",
+      "一言: 即の匂い強め",
+    ],
+    slangBase: [
+      "一言: パワギラは抑えめ",
+      "一言: 押し引き調整",
+      "一言: 即線を探る",
+    ],
+    tags: ["#パワギラ即", "#満即", "#現場メモ"],
+  },
+  beam: {
+    labels: {
+      open: ["目線", "入り", "IN"],
+      reaction: ["目ビーム", "返り", "温度感"],
+      result: ["着地", "回収", "結果"],
+      good: ["目刺さり", "刺さり", "良"],
+      reflection: ["目線修正", "反省", "課題"],
+      next: ["次ビーム", "次", "次回"],
+    },
+    resultWin: [
+      "目ビーム刺さった。きもちえぇー。",
+      "目線から回収。これは勝ち。",
+      "目ビーム通って満即案件。",
+    ],
+    resultWinCompact: [
+      "目ビーム刺さり",
+      "目線から回収",
+      "目ビーム勝ち",
+    ],
+    win: [
+      "目ビーム通った。感触アリ。",
+      "目線で温度感拾えた。",
+      "刺さり確認。きもちえぇー。",
+    ],
+    winCompact: [
+      "目ビーム通った",
+      "目線で拾えた",
+      "刺さり確認",
+    ],
+    miss: [
+      "目ビーム足りず。次で修正。",
+      "目線の置き方を修正。",
+      "刺しに行く前の間を作る。",
+    ],
+    missCompact: [
+      "目線修正",
+      "次ビーム強め",
+      "間を作る",
+    ],
+    neutral: [
+      "目ビーム強めで継続。",
+      "目線の反応は悪くない。",
+      "次は目線から刺す。",
+    ],
+    neutralCompact: [
+      "目ビーム継続",
+      "反応悪くない",
+      "次は目線から",
+    ],
+    slangWin: [
+      "一言: 目ビーム刺さり",
+      "一言: 目線で回収",
+      "一言: 目ビーム通った",
+    ],
+    slangBase: [
+      "一言: 目ビーム意識",
+      "一言: 目線から刺す",
+      "一言: 返り待ち",
+    ],
+    tags: ["#目ビーム", "#ナンパ", "#現場メモ"],
+  },
+  appointment: {
+    labels: {
+      open: ["入り", "導入", "IN"],
+      reaction: ["アポ線", "返り", "温度感"],
+      result: ["即確", "アポ", "回収"],
+      good: ["打診", "刺さり", "良"],
+      reflection: ["打診修正", "反省", "課題"],
+      next: ["次アポ", "即確", "次"],
+    },
+    resultWin: [
+      "即確アポ。これは勝ち。",
+      "即確アポ見えた。次で回収。",
+      "アポ線くっきり。きもちえぇー。",
+      "打診通った。勝ち。",
+    ],
+    resultWinCompact: [
+      "即確アポで勝ち",
+      "アポ線くっきり",
+      "打診通った",
+      "次回収",
+    ],
+    win: [
+      "即確アポ見えた。次で回収。",
+      "アポ線あり。これは強い。",
+      "打診の温度感アリ。",
+    ],
+    winCompact: [
+      "即確アポ見えた",
+      "アポ線あり",
+      "打診アリ",
+    ],
+    miss: [
+      "打診が遅れた。次は早め。",
+      "即確までの導線を修正。",
+      "アポ打診の間を作る。",
+    ],
+    missCompact: [
+      "打診早め",
+      "導線修正",
+      "間を作る",
+    ],
+    neutral: [
+      "即確アポまで持っていく。",
+      "アポ線を探りながら継続。",
+      "次は打診を早める。",
+    ],
+    neutralCompact: [
+      "即確アポ狙い",
+      "アポ線探る",
+      "打診早め",
+    ],
+    slangWin: [
+      "一言: 即確アポ見えた",
+      "一言: アポ線くっきり",
+      "一言: 打診通った",
+    ],
+    slangBase: [
+      "一言: 即確アポ狙い",
+      "一言: 打診早め",
+      "一言: アポ線探る",
+    ],
+    tags: ["#即確アポ", "#ナンパ", "#現場メモ"],
+  },
+  reviewer: {
+    labels: {
+      open: ["入り", "検証", "IN"],
+      reaction: ["反応", "ログ", "温度感"],
+      result: ["結果", "着地", "回収"],
+      good: ["再現", "良", "刺さり"],
+      reflection: ["反省", "修正点", "課題"],
+      next: ["次回改善", "次", "改善"],
+    },
+    resultWin: [
+      "回収。反省込みで次も再現。",
+      "勝ち。修正点も見えた。",
+      "満即。再現性あり。",
+    ],
+    resultWinCompact: [
+      "回収、再現",
+      "勝ち、修正あり",
+      "満即、再現性あり",
+    ],
+    win: [
+      "勝ち筋見えた。次で再現。",
+      "温度感アリ。修正して回収。",
+      "ログとしてかなり良い。",
+    ],
+    winCompact: [
+      "次で再現",
+      "修正して回収",
+      "ログ良し",
+    ],
+    miss: [
+      "反省あり。でも勝ち筋はある。",
+      "修正点明確。次で回収。",
+      "詰まりを潰せば取れる。",
+    ],
+    missCompact: [
+      "修正点明確",
+      "次で回収",
+      "詰まり潰す",
+    ],
+    neutral: [
+      "ログ回収。次の検証へ。",
+      "良い材料は取れた。",
+      "改善して次。",
+    ],
+    neutralCompact: [
+      "ログ回収",
+      "材料取れた",
+      "改善して次",
+    ],
+    slangWin: [
+      "一言: 勝ち筋ログ",
+      "一言: 再現性あり",
+      "一言: 修正込みで回収",
+    ],
+    slangBase: [
+      "一言: 反省ログ",
+      "一言: 次回検証",
+      "一言: 修正点回収",
+    ],
+    tags: ["#振り返り", "#反省メモ", "#現場メモ"],
+  },
+  calm: {
+    labels: {
+      open: ["入り", "IN", "導入"],
+      reaction: ["反応", "返り", "温度感"],
+      result: ["結果", "着地", "回収"],
+      good: ["良", "刺さり", "良かった"],
+      reflection: ["反省", "修正", "課題"],
+      next: ["次", "次回", "改善"],
+    },
+    resultWin: [
+      "回収。淡々と勝ち。",
+      "結果良し。次も同じ流れ。",
+      "着地成功。無駄なく回収。",
+    ],
+    resultWinCompact: [
+      "淡々と勝ち",
+      "結果良し",
+      "無駄なく回収",
+    ],
+    win: [
+      "感触あり。次で回収。",
+      "反応良し。継続。",
+      "淡々と勝ち筋。",
+    ],
+    winCompact: [
+      "感触あり",
+      "反応良し",
+      "勝ち筋",
+    ],
+    miss: [
+      "修正して次。",
+      "反応は悪くない。次で回収。",
+      "淡々と改善。",
+    ],
+    missCompact: [
+      "修正して次",
+      "次で回収",
+      "淡々と改善",
+    ],
+    neutral: [
+      "悪くない。継続。",
+      "次もこの流れ。",
+      "記録として良し。",
+    ],
+    neutralCompact: [
+      "悪くない",
+      "次もこの流れ",
+      "記録良し",
+    ],
+    slangWin: [
+      "一言: 無駄なく回収",
+      "一言: 淡々と勝ち",
+      "一言: 流れ良し",
+    ],
+    slangBase: [
+      "一言: 淡々と継続",
+      "一言: 反応見る",
+      "一言: 次で回収",
+    ],
+    tags: ["#即報", "#現場メモ", "#ナンパ"],
+  },
 };
 
 const TONE_CONFIG = {
@@ -330,7 +697,7 @@ function generateReport(rawState) {
     return "【即報】\nフォームに入力すると、ここに投稿用の即報文がリアルタイム表示されます。";
   }
 
-  if (ctx.tone === "tweet") {
+  if (isNanpaGenre(ctx.tone)) {
     return limitReport(buildTweetReport(ctx));
   }
 
@@ -339,8 +706,9 @@ function generateReport(rawState) {
 }
 
 function normalizeState(state) {
+  const tone = normalizeTone(state.tone);
   const normalized = {
-    tone: state.tone || DEFAULT_STATE.tone,
+    tone,
     length: state.length || DEFAULT_STATE.length,
     inputMode: state.inputMode || DEFAULT_STATE.inputMode,
     seed: state.seed || "default",
@@ -366,6 +734,31 @@ function normalizeState(state) {
   normalized.toneConfig = TONE_CONFIG[normalized.tone] || TONE_CONFIG.formal;
 
   return normalized;
+}
+
+function normalizeTone(value) {
+  if (isNanpaGenre(value)) {
+    return value;
+  }
+
+  if (value === "tweet") {
+    return DEFAULT_STATE.tone;
+  }
+
+  return value || DEFAULT_STATE.tone;
+}
+
+function isNanpaGenre(value) {
+  return Object.prototype.hasOwnProperty.call(NANPA_GENRE_CONFIG, value);
+}
+
+function nanpaGenre(ctx) {
+  return NANPA_GENRE_CONFIG[ctx.tone] || NANPA_GENRE_CONFIG[DEFAULT_STATE.tone];
+}
+
+function genreList(ctx, key, fallback) {
+  const list = nanpaGenre(ctx)[key];
+  return list && list.length ? list : fallback;
 }
 
 function buildShortReport(ctx) {
@@ -688,13 +1081,13 @@ function pickupComment(ctx, compact = false) {
 
   if (resultWin) {
     return pick(ctx, `comment-result-win${suffix}`, compact
-      ? [
+      ? genreList(ctx, "resultWinCompact", [
           "満即きもちえぇー",
           "即確アポで勝ち",
           "パワギラ即の流れ",
           "目ビーム刺さり",
-        ]
-      : [
+        ])
+      : genreList(ctx, "resultWin", [
           "満即！きもちえぇー。",
           "満即。これはきもちえぇー。",
           "勝ち。きもちえぇー。",
@@ -703,34 +1096,34 @@ function pickupComment(ctx, compact = false) {
           "即確アポ。これは勝ち。",
           "パワギラ即の流れ。満即！",
           "目ビーム刺さった。きもちえぇー。",
-        ]);
+        ]));
   }
 
   if (resultMiss) {
     return pick(ctx, `comment-result-miss${suffix}`, compact
-      ? [
+      ? genreList(ctx, "missCompact", [
           "次で回収",
           "種まき完了",
           "勝ち筋は見えた",
           "修正して次",
-        ]
-      : [
+        ])
+      : genreList(ctx, "miss", [
           "刺さりは見えた。次で回収。",
           "今日は種まき。次で取る。",
           "反省あり。でも勝ち筋はある。",
           "ここは修正して次。",
-        ]);
+        ]));
   }
 
   if (hasWin) {
     return pick(ctx, `comment-win${suffix}`, compact
-      ? [
+      ? genreList(ctx, "winCompact", [
           "感触アリ",
           "次いけるやつ",
           "勝ち筋見えた",
           "目ビーム通った",
-        ]
-      : [
+        ])
+      : genreList(ctx, "win", [
           "感触アリ。きもちえぇー。",
           "これは次いけるやつ。",
           "温度感アリ。勝ち筋見えた。",
@@ -738,60 +1131,60 @@ function pickupComment(ctx, compact = false) {
           "目ビーム通った。感触アリ。",
           "即確アポ見えた。次で回収。",
           "パワギラ感あり。これは強い。",
-        ]);
+        ]));
   }
 
   if (hasMiss) {
     return pick(ctx, `comment-miss${suffix}`, compact
-      ? [
+      ? genreList(ctx, "missCompact", [
           "次で回収",
           "種まき完了",
           "勝ち筋はある",
           "パワギラ抑える",
-        ]
-      : [
+        ])
+      : genreList(ctx, "miss", [
           "刺さりは見えた。次で回収。",
           "今日は種まき。次で取る。",
           "反省あり。でも勝ち筋はある。",
           "ここは修正して次。",
           "目ビーム足りず。次で修正。",
           "パワギラ出しすぎ。次は抑える。",
-        ]);
+        ]));
   }
 
   return pick(ctx, `comment-neutral${suffix}`, compact
-    ? [
+    ? genreList(ctx, "neutralCompact", [
         "これは勝ち筋",
         "次もこのノリ",
         "温度感拾えた",
         "即確アポ狙い",
-      ]
-    : [
+      ])
+    : genreList(ctx, "neutral", [
         "これは勝ち筋。",
         "次もこのノリ。",
         "温度感拾えた。よし。",
         "悪くない。継続。",
         "目ビーム強めで継続。",
         "即確アポまで持っていく。",
-      ]);
+      ]));
 }
 
 function slangLine(ctx) {
   const text = `${ctx.open} ${ctx.early} ${ctx.middle} ${ctx.result} ${ctx.good}`;
   const resultWin = /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(text);
   const options = resultWin
-    ? [
+    ? genreList(ctx, "slangWin", [
         "一言: 即確アポ見えた",
         "一言: パワギラ即の流れ",
         "一言: 目ビーム刺さり",
         "一言: 回収ムーブ強め",
-      ]
-    : [
+      ])
+    : genreList(ctx, "slangBase", [
         "一言: 目ビーム意識",
         "一言: 即確アポ狙い",
         "一言: パワギラは抑えめ",
         "一言: 刺さり待ち",
-      ];
+      ]);
 
   return pick(ctx, "slang-line", options);
 }
@@ -801,7 +1194,7 @@ function tweetTags(ctx) {
   const text = `${ctx.result} ${ctx.good} ${ctx.reflection} ${ctx.next}`;
   const resultWin = /満即|即|即確|即確アポ|連絡先|交換|成功|OK|合流|アポ|通りそう/i.test(text);
 
-  tags.push(pick(ctx, "tag-main", ["#ナンパ", "#声かけ", "#現場メモ", "#目ビーム"]));
+  tags.push(pick(ctx, "tag-main", genreList(ctx, "tags", ["#ナンパ", "#声かけ", "#現場メモ", "#目ビーム"])));
 
   if (resultWin && maybe(ctx, "tag-win", 0.7)) {
     tags.push(pick(ctx, "tag-win-label", ["#満即", "#即確アポ", "#パワギラ即"]));
@@ -826,8 +1219,13 @@ function tweetLabel(ctx, type) {
     reflection: ["反省", "課題", "修正"],
     next: ["次", "次回", "次やる"],
   };
+  const genreLabels = nanpaGenre(ctx).labels || {};
+  const nextLabels = {
+    ...labels,
+    ...genreLabels,
+  };
 
-  return pick(ctx, `label-${type}`, labels[type] || [type]);
+  return pick(ctx, `label-${type}`, nextLabels[type] || [type]);
 }
 
 function pick(ctx, key, options) {
@@ -1052,7 +1450,7 @@ function appendText(current, next) {
 
 function fillSample() {
   applyState({
-    tone: "tweet",
+    tone: "beam",
     length: "short",
     inputMode: "manual",
     seed: createRandomSeed(),
