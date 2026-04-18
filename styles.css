@@ -349,23 +349,56 @@ textarea:focus-visible,
   color: rgba(173, 177, 164, 0.58);
 }
 
-.output-text {
-  flex: 1;
-  min-height: 420px;
+.candidate-list {
+  display: grid;
+  gap: 12px;
+}
+
+.candidate-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
   margin: 0;
-  padding: 18px;
-  overflow: auto;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  color: #f7f2e8;
   background:
-    linear-gradient(180deg, rgba(127, 211, 181, 0.05), transparent 180px),
+    linear-gradient(180deg, rgba(127, 211, 181, 0.05), transparent 120px),
     #151713;
+}
+
+.candidate-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted-strong);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.candidate-count {
+  color: var(--accent-warm);
+}
+
+.candidate-text {
+  min-height: 90px;
+  margin: 0;
+  overflow: auto;
+  color: #f7f2e8;
   font-family: inherit;
   font-size: 0.98rem;
   line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.candidate-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.candidate-copy {
+  min-height: 36px;
 }
 
 .toast {
@@ -401,8 +434,8 @@ textarea:focus-visible,
     min-height: auto;
   }
 
-  .output-text {
-    min-height: 360px;
+  .candidate-text {
+    min-height: 84px;
   }
 }
 

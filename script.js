@@ -531,8 +531,7 @@ const TWEET_BUILDERS = {
 };
 
 const form = document.querySelector("#reportForm");
-const outputText = document.querySelector("#outputText");
-const copyButton = document.querySelector("#copyButton");
+const candidateList = document.querySelector("#candidateList");
 const sampleButton = document.querySelector("#sampleButton");
 const clearButton = document.querySelector("#clearButton");
 const randomSeedButton = document.querySelector("#randomSeedButton");
@@ -543,6 +542,7 @@ const saveStatus = document.querySelector("#saveStatus");
 
 let toastTimer = 0;
 let saveStatusTimer = 0;
+let currentReports = [];
 
 init();
 
@@ -553,7 +553,7 @@ function init() {
 
   form.addEventListener("input", () => renderAndSave(true));
   form.addEventListener("change", () => renderAndSave(true));
-  copyButton.addEventListener("click", copyReport);
+  candidateList.addEventListener("click", handleCandidateCopy);
   sampleButton.addEventListener("click", fillSample);
   clearButton.addEventListener("click", clearInputs);
   randomSeedButton.addEventListener("click", randomizeSeed);
@@ -621,11 +621,76 @@ function setRadioValue(name, value) {
 function renderAndSave(shouldSave) {
   updateInputMode();
   const state = collectState();
-  outputText.textContent = generateReport(state);
+  currentReports = generateReportVariants(state);
+  renderCandidates(currentReports);
 
   if (shouldSave) {
     saveState(state);
   }
+}
+
+function generateReportVariants(rawState, count = 3) {
+  const reports = [];
+  const seen = new Set();
+  const baseSeed = rawState.seed || "default";
+
+  for (let index = 0; reports.length < count && index < count * 5; index += 1) {
+    const variantState = {
+      ...rawState,
+      seed: `${baseSeed}#${index + 1}`,
+    };
+    const report = generateReport(variantState);
+
+    if (!seen.has(report)) {
+      reports.push(report);
+      seen.add(report);
+    }
+  }
+
+  while (reports.length < count) {
+    reports.push(reports[0] || generateReport(rawState));
+  }
+
+  return reports;
+}
+
+function renderCandidates(reports) {
+  candidateList.replaceChildren(...reports.map((report, index) => createCandidateCard(report, index)));
+}
+
+function createCandidateCard(report, index) {
+  const card = document.createElement("article");
+  card.className = "candidate-card";
+
+  const meta = document.createElement("div");
+  meta.className = "candidate-meta";
+
+  const title = document.createElement("span");
+  title.textContent = `候補${index + 1}`;
+
+  const count = document.createElement("span");
+  count.className = "candidate-count";
+  count.textContent = `${charLength(report)} / ${MAX_REPORT_CHARS}`;
+
+  meta.append(title, count);
+
+  const text = document.createElement("pre");
+  text.className = "candidate-text";
+  text.textContent = report;
+
+  const actions = document.createElement("div");
+  actions.className = "candidate-actions";
+
+  const button = document.createElement("button");
+  button.className = "button primary candidate-copy";
+  button.type = "button";
+  button.dataset.copyIndex = String(index);
+  button.textContent = "コピー";
+
+  actions.append(button);
+  card.append(meta, text, actions);
+
+  return card;
 }
 
 function updateInputMode() {
@@ -1505,8 +1570,17 @@ function toDateTimeLocalValue(date) {
   return offsetDate.toISOString().slice(0, 16);
 }
 
-async function copyReport() {
-  const text = outputText.textContent.trim();
+function handleCandidateCopy(event) {
+  const button = event.target.closest("[data-copy-index]");
+  if (!button) {
+    return;
+  }
+
+  copyReport(Number(button.dataset.copyIndex || 0));
+}
+
+async function copyReport(index = 0) {
+  const text = (currentReports[index] || "").trim();
   if (!text) {
     showToast("コピーする内容がありません");
     return;
