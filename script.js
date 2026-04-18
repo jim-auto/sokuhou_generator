@@ -928,10 +928,10 @@ function resultTypeConfig(ctx) {
 function inferResultType(text) {
   if (/満即/.test(text)) return "manseki";
   if (/準即/.test(text)) return "junseki";
-  if (/番ゲ|番号|番交換/.test(text)) return "banget";
-  if (/LINE|ライン|連絡先/.test(text)) return "line";
   if (/即確|アポ確|確アポ/.test(text)) return "appointment";
   if (/アポ打診|打診/.test(text)) return "ask";
+  if (/番ゲ|番号|番交換/.test(text)) return "banget";
+  if (/LINE|ライン|連絡先/.test(text)) return "line";
   if (/解散/.test(text)) return "close";
   if (/NG|拒否|無理/.test(text)) return "ng";
   if (/種まき|種撒き/.test(text)) return "seed";
@@ -1560,6 +1560,7 @@ function parseBulkMemo(value) {
     .filter(Boolean);
   const parsed = {};
   const unlabeled = [];
+  const allText = lines.join(" ");
 
   for (const line of lines) {
     const labeled = line.match(/^([^:：]+)[:：]\s*(.+)$/);
@@ -1576,16 +1577,224 @@ function parseBulkMemo(value) {
     }
   }
 
+  applyBulkFacts(parsed, extractBulkFacts(allText));
+
   for (const line of unlabeled) {
+    applyBulkFacts(parsed, extractBulkFacts(line));
     const key = inferBulkLineKey(line);
     const inferredResultType = inferResultType(line);
     if (inferredResultType && !parsed.resultType) {
       parsed.resultType = inferredResultType;
     }
-    parsed[key] = appendText(parsed[key], line);
+    if (shouldAppendInferredLine(key, parsed)) {
+      parsed[key] = appendText(parsed[key], line);
+    }
   }
 
   return parsed;
+}
+
+function applyBulkFacts(parsed, facts) {
+  for (const [key, value] of Object.entries(facts)) {
+    if (!value) {
+      continue;
+    }
+
+    if (key === "resultType") {
+      if (!parsed.resultType || parsed.resultType === "auto") {
+        parsed.resultType = value;
+      }
+      continue;
+    }
+
+    if (!parsed[key]) {
+      parsed[key] = value;
+    }
+  }
+}
+
+function extractBulkFacts(value) {
+  const text = normalizeBulkText(value);
+  const facts = {};
+
+  const areaMatch = text.match(/(渋谷|新宿|池袋|銀座|六本木|上野|恵比寿|中目黒|横浜|梅田|難波|心斎橋|京都|名古屋|博多|天神)(?:駅|周辺|界隈)?/);
+  if (areaMatch) {
+    facts.area = areaMatch[0];
+  }
+
+  const ageMatch = text.match(/(?:^|[\s、,／/])(?:年齢[:：]?\s*)?(1[8-9]|[2-4]\d)\s*(?:歳|才)?(?!代)(?=$|[\s、,／/]|[A-Za-z一-龠ぁ-んァ-ヶ])/);
+  if (ageMatch) {
+    facts.age = ageMatch[1];
+  }
+
+  const occupationMatch = text.match(/(看護師|美容師|保育士|会社員|アパレル|ラウンジ|OL|JD|CA|IT|看護|美容|学生|受付|保育|販売|事務|銀行|広告|医療|歯科|夜職|キャバ)/i);
+  if (occupationMatch) {
+    facts.occupation = normalizeOccupation(occupationMatch[1]);
+  }
+
+  const streetMatch = text.match(/(?:スト値?|street)\s*[:：]?\s*([0-9](?:\.[0-9])?)/i);
+  if (streetMatch) {
+    facts.streetValue = streetMatch[1];
+  }
+
+  const specMatch = text.match(/(?:スペ値?|spec)\s*[:：]?\s*([0-9](?:\.[0-9])?)/i);
+  if (specMatch) {
+    facts.specValue = specMatch[1];
+  }
+
+  const cupMatch = text.match(/(?:カップ|cup)\s*[:：]?\s*([A-H])|(?:^|[\s、,／/])([A-H])\s*(?:cup|カップ)?(?=$|[\s、,／/])/i);
+  if (cupMatch) {
+    facts.cup = String(cupMatch[1] || cupMatch[2]).toUpperCase();
+  }
+
+  const jojoMatch = text.match(/JOJO\s*[:：]?\s*(あり|有り|有|なし|無し|無|[0-9](?:\.[0-9])?)/i);
+  if (jojoMatch) {
+    facts.jojo = normalizeJojo(jojoMatch[1]);
+  } else if (/JOJO/i.test(text)) {
+    facts.jojo = "有";
+  }
+
+  const resultType = inferResultType(text);
+  if (resultType) {
+    facts.resultType = resultType;
+  }
+
+  const opponent = extractOpponentHint(text);
+  if (opponent) {
+    facts.opponent = opponent;
+  }
+
+  const result = extractBulkHint(text, [
+    /満即[^、。\s／/]*/g,
+    /準即[^、。\s／/]*/g,
+    /即確アポ[^、。\s／/]*/g,
+    /アポ確[^、。\s／/]*/g,
+    /LINE交換/g,
+    /ライン交換/g,
+    /連絡先交換/g,
+    /番ゲ/g,
+    /番号交換/g,
+    /アポ打診[^、。\s／/]*/g,
+    /解散/g,
+    /NG/g,
+    /種まき/g,
+    /種撒き/g,
+  ]);
+  if (result) {
+    facts.result = result;
+  }
+
+  const good = extractBulkHint(text, [
+    /目ビーム[^、。\s／/]*/g,
+    /刺さ[りった][^、。\s／/]*/g,
+    /温度感[^、。\s／/]*/g,
+    /笑顔[^、。\s／/]*/g,
+    /盛り上が[りっ][^、。\s／/]*/g,
+    /テンポ[^、。\s／/]*/g,
+  ]);
+  if (good) {
+    facts.good = good;
+  }
+
+  const reflection = extractBulkHint(text, [
+    /クロージング[^、。\s／/]*/g,
+    /話題が散った/g,
+    /散った/g,
+    /遅れ[^、。\s／/]*/g,
+    /警戒[^、。\s／/]*/g,
+    /詰ま[りっ][^、。\s／/]*/g,
+    /反省[^、。\s／/]*/g,
+    /ミス[^、。\s／/]*/g,
+  ]);
+  if (reflection) {
+    facts.reflection = reflection;
+  }
+
+  return facts;
+}
+
+function normalizeBulkText(value) {
+  return String(value || "")
+    .replace(/[　\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeOccupation(value) {
+  const text = String(value || "").trim();
+  const upper = text.toUpperCase();
+  const map = {
+    看護: "看護師",
+    美容: "美容師",
+    保育: "保育士",
+  };
+
+  if (["OL", "JD", "CA", "IT"].includes(upper)) {
+    return upper;
+  }
+
+  return map[text] || text;
+}
+
+function normalizeJojo(value) {
+  const text = String(value || "").trim();
+  if (/^(あり|有り|有)$/i.test(text)) {
+    return "有";
+  }
+  if (/^(なし|無し|無)$/i.test(text)) {
+    return "無";
+  }
+  return text;
+}
+
+function extractOpponentHint(text) {
+  const hints = extractBulkMatches(text, [
+    /(?:綺麗め|きれいめ|清楚|ギャル|地雷|港区|量産|サブカル|OL系|学生系|美容系|看護系|夜職系|カフェ帰り|仕事帰り|飲み帰り|ソロ|一人|二人組)[^、。\s／/]*/g,
+  ]);
+
+  return hints.slice(0, 2).join(" ");
+}
+
+function extractBulkHint(text, patterns) {
+  return extractBulkMatches(text, patterns).slice(0, 3).join(" / ");
+}
+
+function extractBulkMatches(text, patterns) {
+  const matches = [];
+
+  for (const pattern of patterns) {
+    for (const match of text.matchAll(pattern)) {
+      const value = String(match[0] || "").trim();
+      if (!value || matches.some((current) => current.includes(value))) {
+        continue;
+      }
+
+      const shorterIndex = matches.findIndex((current) => value.includes(current));
+      if (shorterIndex >= 0) {
+        matches.splice(shorterIndex, 1);
+      }
+      matches.push(value);
+    }
+  }
+
+  return matches;
+}
+
+function shouldAppendInferredLine(key, parsed) {
+  const extractedKeys = new Set([
+    "area",
+    "age",
+    "occupation",
+    "streetValue",
+    "cup",
+    "specValue",
+    "jojo",
+    "result",
+    "good",
+    "reflection",
+  ]);
+
+  return !(extractedKeys.has(key) && parsed[key]);
 }
 
 function bulkLabelToKey(label) {
